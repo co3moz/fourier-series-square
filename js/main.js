@@ -1,36 +1,93 @@
-function drawPlot (ayar) {
+$(function () {
+  var options = {
+    amplitude: 10,
+    frequency: 1,
+    harmonic: 5,
+    sample: 360,
+    details: true
+  };
+  $(".busy").fadeOut(0);
+  drawPlot(options);
+
+  $("input").on("change", function () {
+    var value = +this.value;
+    var id = this.id;
+
+    if (id == "harmonic") {
+      if ((value & 1) == 0) {
+        if (options.harmonic < value) {
+          value = (value + 1);
+        } else {
+          value = (value - 1);
+        }
+      }
+
+      if (value > 1000) {
+        value = 999;
+      }
+    }
+
+    if (value < 1) {
+      value = 1;
+    }
+
+    if (id == "details") {
+      options.details = this.checked;
+    } else {
+      this.value = value;
+      options[id] = value;
+    }
+
+
+    if(options.harmonic > 100) {
+      $(".busy").fadeIn(300);
+      setTimeout(function () {
+        drawPlot(options);
+      }, 300);
+    } else {
+      drawPlot(options);
+    }
+  });
+});
+
+
+function drawPlot (options) {
   var placeHolder = $("#placeholder");
   placeHolder.html("");
 
-  var d = [];
-  for (var k = 0; k < ayar.harmonik - 2; k++) {
-    var y = [];
-    var N = (2 * k + 1);
-    for (var i = 0; i < 1; i += 1 / 360) {
-      y.push([i, 4 * ayar.genlik / (N * Math.PI) * Math.sin(N * Math.PI * ayar.frekans * 2 * i)]);
+  var graphValueCollection = [],
+    sample = options.sample,
+    graphCollection = [],
+    squareGraph = [], N, i, m, plot;
+
+  for (N = 1; N < options.harmonic; N += 2) {
+    var graphValues = [];
+    for (i = 0; i < 1; i += 1 / sample) {
+      graphValues.push([i, 4 * options.amplitude / (N * Math.PI) * Math.sin(N * Math.PI * options.frequency * 2 * i)]);
     }
-    d.push(y);
+    graphValueCollection.push(graphValues);
   }
 
-  var z = [];
-  d.forEach(function (e, k) {
-    z.push({data: e, shadowSize: 0});
-  });
+  if (options.details == true) {
+    graphValueCollection.forEach(function (e) {
+      graphCollection.push({data: e, shadowSize: 0});
+    });
+  }
 
-  var allMix = [];
-  for (i = 0; i <= 360; i++) {
+  var length = graphValueCollection[0].length;
+  for (i = 0; i < length; i++) {
     var total = 0;
 
-    for (var m = 0; m < d.length; m++) {
-      total += d[m][i][1];
+    for (m = 0; m < graphValueCollection.length; m++) {
+      total += graphValueCollection[m][i][1];
     }
 
-    allMix[i] = [i / 360, total];
+    squareGraph[i] = [i / sample, total];
   }
 
-  z.push({data: allMix, shadowSize: 0, color: "black", label: "V(x) = -0.00"});
+  graphCollection.push({data: squareGraph, shadowSize: 0, color: "black", label: "V(x) = -0.00"});
 
-  var plot = $.plot("#placeholder", z, {
+  plot = $.plot("#placeholder", graphCollection, {
     series: {
       lines: {
         show: true
@@ -45,61 +102,5 @@ function drawPlot (ayar) {
     }
   });
 
-
-  var legends = placeHolder.find(".legendLabel");
-
-  legends.each(function () {
-    $(this).css('width', $(this).width());
-  });
-
-  var updateLegendTimeout = null;
-  var latestPosition = null;
-
-  function updateLegend () {
-    updateLegendTimeout = null;
-    var pos = latestPosition;
-    var axes = plot.getAxes();
-    if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
-      pos.y < axes.yaxis.min || pos.y > axes.yaxis.max) {
-      return;
-    }
-    var i, j, dataset = plot.getData();
-    i = dataset.length - 1;
-    var series = dataset[i];
-    for (j = 0; j < series.data.length; ++j) {
-      if (series.data[j][0] > pos.x) {
-        break;
-      }
-    }
-    var y, p1 = series.data[j - 1], p2 = series.data[j];
-    if (p1 == null) {
-      y = p2[1];
-    } else if (p2 == null) {
-      y = p1[1];
-    } else {
-      y = p1[1] + (p2[1] - p1[1]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
-    }
-    legends.text(series.label.replace(/=.*/, "= " + y.toFixed(2)));
-  }
-  placeHolder.bind("plothover", function (event, pos, item) {
-    latestPosition = pos;
-    if (!updateLegendTimeout) {
-      updateLegendTimeout = setTimeout(updateLegend, 50);
-    }
-  });
+  plotValue(plot, placeHolder, options);
 }
-
-
-$(function () {
-  var ayar = {
-    genlik: 10,
-    frekans: 1,
-    harmonik: 5
-  };
-  drawPlot(ayar);
-
-  $("input").on("change", function () {
-    ayar[this.id] = +this.value;
-    drawPlot(ayar);
-  });
-});

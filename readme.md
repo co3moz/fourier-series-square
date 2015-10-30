@@ -1,11 +1,12 @@
-fourier-series
+fourier-series-square
 ==================
 
-Draws the series of fourier
+Draws the square series of fourier
 
-start fire
+ignition
 ---------------------
-Open the index.html or [click here](https://cdn.rawgit.com/co3moz/fourier-series/master/index.html)
+Open the index.html or [click here](https://cdn.rawgit.com/co3moz/fourier-series-square/master/index.html)
+
 
 libraries
 ---------------------
